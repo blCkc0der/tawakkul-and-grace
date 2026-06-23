@@ -11,7 +11,7 @@ client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 # send first request
 '''generate_content_stream'''
 response = client.models.generate_content(
-    model="gemini-3-flash-preview",
+    model="gemini-3.1-flash-lite",
     contents="why is the sky blue?"
 )
 
