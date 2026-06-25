@@ -26,6 +26,24 @@ Currently on Day 2: setting up the development environment and beginning API int
 - **Gradio** — for the user interface
 - Deployment planned via **Hugging Face Spaces**
 
+## How to Run
+
+1. Clone the repo
+2. Create a `.env` file with your Gemini API key:
+   `GEMINI_API_KEY=your-key-here`
+3. Install dependencies:
+   `pip install google-genai gradio requests python-dotenv`
+4. Run the app:
+   `python app.py`
+5. Open `http://127.0.0.1:7860` in your browser
+
+## Architecture
+
+- **Aladhan API** — fetches real Islamic prayer times by city
+- **Google Gemini API** — generates personalised AI reminders
+- **Gradio** — provides the web interface
+- **python-dotenv** — manages API key securely via `.env`
+
 ## Project Goal
 
 To build a working, deployed AI application that reflects Dubai's multi-faith student community, demonstrating real API and LLM integration, and to grow it into a genuine portfolio project.
