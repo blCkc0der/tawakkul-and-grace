@@ -94,17 +94,21 @@ def get_next_christian_prayer(prayer_slots):
     return sorted_slots[0][0], sorted_slots[0][1]
 
 
-def christian_tab(city, p1_name, p1_time, p2_name, p2_time,
-                  p3_name, p3_time, context):
+def christian_tab(city, p1n, p2n, p3n, p4n, p5n, p6n, p7n,
+                  p1t, p2t, p3t, p4t, p5t, p6t, p7t, context):
     if not city.strip():
         return "Please enter a city name.", ""
 
-    # Build list of prayer slots, filter out empty ones
-    prayer_slots = []
-    for name, time in [(p1_name, p1_time), (p2_name, p2_time),
-                       (p3_name, p3_time)]:
-        if name.strip() and time:
-            prayer_slots.append((name.strip(), time))
+    all_slots = [
+        (p1n, p1t), (p2n, p2t), (p3n, p3t),
+        (p4n, p4t), (p5n, p5t), (p6n, p6t), (p7n, p7t)
+    ]
+
+    prayer_slots = [
+        (name.strip(), time)
+        for name, time in all_slots
+        if name.strip()
+    ]
 
     if not prayer_slots:
         return "Please add at least one prayer.", ""
@@ -113,7 +117,7 @@ def christian_tab(city, p1_name, p1_time, p2_name, p2_time,
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.0-flash-lite",
+            model="gemini-1.5-flash",
             contents=f"""
             Generate a warm, encouraging reminder for a Christian student 
             in {city} that their {next_prayer_name} is coming up at {next_prayer_time}.
@@ -125,8 +129,51 @@ def christian_tab(city, p1_name, p1_time, p2_name, p2_time,
     except Exception:
         reminder = "Could not generate reminder right now. Please try again shortly."
 
-    schedule_lines = "\n".join([f"{name}: {time}"
-                                for name, time in prayer_slots])
+    schedule_lines = "\n".join([
+        f"{name}: {time}" for name, time in prayer_slots
+    ])
+    schedule = (
+        f"Your prayer schedule:\n{schedule_lines}\n\n"
+        f"Next up: {next_prayer_name} at {next_prayer_time}"
+    )
+    return schedule, reminder
+    if not city.strip():
+        return "Please enter a city name.", ""
+
+    all_slots = [
+        (p1n, p1t), (p2n, p2t), (p3n, p3t),
+        (p4n, p4t), (p5n, p5t), (p6n, p6t), (p7n, p7t)
+    ]
+
+    # Only include slots with a real name
+    prayer_slots = [
+        (name.strip(), time)
+        for name, time in all_slots
+        if name.strip()
+    ]
+
+    if not prayer_slots:
+        return "Please add at least one prayer.", ""
+
+    next_prayer_name, next_prayer_time = get_next_christian_prayer(prayer_slots)
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=f"""
+            Generate a warm, encouraging reminder for a Christian student 
+            in {city} that their {next_prayer_name} is coming up at {next_prayer_time}.
+            It's a {context}. Keep it to 2-3 sentences, 
+            respectful and faith-affirming.
+            """
+        )
+        reminder = response.text
+    except Exception:
+        reminder = "Could not generate reminder right now. Please try again shortly."
+
+    schedule_lines = "\n".join([
+        f"{name}: {time}" for name, time in prayer_slots
+    ])
     schedule = (
         f"Your prayer schedule:\n{schedule_lines}\n\n"
         f"Next up: {next_prayer_name} at {next_prayer_time}"
@@ -158,77 +205,93 @@ with gr.Blocks(title="Tawakkul & Grace") as app:
             )
 
         with gr.Tab("✝️ Christian Prayer Schedule"):
-            with gr.Tab("✝️ Christian Prayer Schedule"):
-                city_input_c = gr.Textbox(label="Your City", value="Dubai")
+            city_input_c = gr.Textbox(label="Your City", value="Dubai")
 
-                gr.Markdown("### Your Prayer Schedule")
-                gr.Markdown("Add your prayer times below. Click + to add more.")
+            gr.Markdown("### Your Prayer Schedule")
+            gr.Markdown("Add your prayer times below. Click **+ Add Prayer** to add more slots (up to 7).")
 
-                # Generate time options 00:00 to 23:45 in 15 min intervals
-                time_options = []
-                for hour in range(24):
-                    for minute in [0, 15, 30, 45]:
-                        time_options.append(f"{hour:02d}:{minute:02d}")
+            # Generate time options
+            time_options = []
+            for hour in range(24):
+                for minute in [0, 15, 30, 45]:
+                    time_options.append(f"{hour:02d}:{minute:02d}")
 
-                # Three default prayer slots
-                with gr.Row():
-                    prayer1_name = gr.Textbox(
-                        label="Prayer 1",
-                        value="Morning Prayer",
+            # Store all prayer rows and their visibility state
+            prayer_rows = []
+            prayer_names = []
+            prayer_times = []
+
+            # Default values for each slot
+            defaults = [
+                ("Morning Prayer", "07:00"),
+                ("Midday Prayer", "12:00"),
+                ("Evening Prayer", "19:00"),
+                ("", "08:00"),
+                ("", "10:00"),
+                ("", "14:00"),
+                ("", "21:00"),
+            ]
+
+            # Create 7 slots, first 3 visible, rest hidden
+            for i, (default_name, default_time) in enumerate(defaults):
+                visible = i < 3
+                with gr.Row(visible=visible) as row:
+                    name_input = gr.Textbox(
+                        label=f"Prayer {i + 1}",
+                        value=default_name,
                         scale=2
                     )
-                    prayer1_time = gr.Dropdown(
+                    time_input = gr.Dropdown(
                         choices=time_options,
                         label="Time",
-                        value="07:00",
+                        value=default_time,
                         scale=1
                     )
+                prayer_rows.append(row)
+                prayer_names.append(name_input)
+                prayer_times.append(time_input)
 
-                with gr.Row():
-                    prayer2_name = gr.Textbox(
-                        label="Prayer 2",
-                        value="Midday Prayer",
-                        scale=2
-                    )
-                    prayer2_time = gr.Dropdown(
-                        choices=time_options,
-                        label="Time",
-                        value="12:00",
-                        scale=1
-                    )
+            # Track how many slots are visible
+            slot_count = gr.State(value=3)
 
-                with gr.Row():
-                    prayer3_name = gr.Textbox(
-                        label="Prayer 3",
-                        value="Evening Prayer",
-                        scale=2
-                    )
-                    prayer3_time = gr.Dropdown(
-                        choices=time_options,
-                        value="19:00",
-                        label="Time",
-                        scale=1
-                    )
+            add_btn = gr.Button("+ Add Prayer", size="sm", variant="secondary")
 
-                context_input_c = gr.Dropdown(
-                    choices=["normal day", "exam week", "weekend"],
-                    label="How's your day?",
-                    value="normal day"
-                )
-                submit_christian = gr.Button("Get Reflection Reminder", variant="primary")
-                schedule_output = gr.Textbox(label="Your Prayer Schedule")
-                reminder_output_c = gr.Textbox(label="Your AI Reminder")
+            context_input_c = gr.Dropdown(
+                choices=["normal day", "exam week", "weekend"],
+                label="How's your day?",
+                value="normal day"
+            )
 
-                submit_christian.click(
-                    fn=christian_tab,
-                    inputs=[
-                        city_input_c,
-                        prayer1_name, prayer1_time,
-                        prayer2_name, prayer2_time,
-                        prayer3_name, prayer3_time,
-                        context_input_c
-                    ],
-                    outputs=[schedule_output, reminder_output_c]
-                )
+            submit_christian = gr.Button(
+                "Get Reflection Reminder",
+                variant="primary"
+            )
+            schedule_output = gr.Textbox(label="Your Prayer Schedule")
+            reminder_output_c = gr.Textbox(label="Your AI Reminder")
+
+
+            # + button logic — reveals next hidden row
+            def add_prayer_slot(current_count):
+                if current_count >= 7:
+                    return [gr.Row(visible=True)] * 7 + [current_count]
+                new_count = current_count + 1
+                updates = []
+                for i in range(7):
+                    updates.append(gr.Row(visible=i < new_count))
+                updates.append(new_count)
+                return updates
+
+
+            add_btn.click(
+                fn=add_prayer_slot,
+                inputs=[slot_count],
+                outputs=prayer_rows + [slot_count]
+            )
+
+            submit_christian.click(
+                fn=christian_tab,
+                inputs=[city_input_c] + prayer_names + prayer_times + [context_input_c],
+                outputs=[schedule_output, reminder_output_c]
+            )
 
 app.launch()
