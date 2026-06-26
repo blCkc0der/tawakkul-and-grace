@@ -117,7 +117,7 @@ def christian_tab(city, p1n, p2n, p3n, p4n, p5n, p6n, p7n,
 
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-3.1-flash-lite",
             contents=f"""
             Generate a warm, encouraging reminder for a Christian student 
             in {city} that their {next_prayer_name} is coming up at {next_prayer_time}.
@@ -294,4 +294,4 @@ with gr.Blocks(title="Tawakkul & Grace") as app:
                 outputs=[schedule_output, reminder_output_c]
             )
 
-app.launch()
+app.launch(server_name="0.0.0.0", server_port=7860)
